@@ -1,20 +1,23 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import './index.css';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TrendingUp, Calendar, Wallet, Calculator, Percent, Repeat, Layers, Coins, CheckCircle2 } from 'lucide-react';
 
 const App = () => {
-  // Состояния (настройки)
+  // Утилита для красивого форматирования чисел (1 000 000)
+  const formatNum = (val) => new Intl.NumberFormat('ru-RU').format(val);
+
+  // Состояния с новыми начальными значениями
   const [principal, setPrincipal] = useState(1000000);
-  const [bondPrice, setBondPrice] = useState(1000); // Цена облигации
-  const [yieldSingle, setYieldSingle] = useState(12.5);
-  const [yieldMonthly, setYieldMonthly] = useState(12.0);
+  const [bondPrice, setBondPrice] = useState(1000);
+  const [yieldSingle, setYieldSingle] = useState(10.0);
+  const [yieldMonthly, setYieldMonthly] = useState(10.0);
   const [years, setYears] = useState(10);
   const [taxRate, setTaxRate] = useState(13);
   const [reinvest, setReinvest] = useState(true);
   const [useLotSize, setUseLotSize] = useState(true);
 
-  // Математика модели
+  // Расчеты
   const results = useMemo(() => {
     const data = [];
     let curSinglePrincipal = principal;
@@ -33,7 +36,6 @@ const App = () => {
 
     for (let m = 1; m <= years * 12; m++) {
       if (reinvest) {
-        // Стратегия 1 (выплаты 2 раза в год)
         if (m % 6 === 0) {
           const coupon = curSinglePrincipal * (netRateSingle / 2);
           const available = coupon + singleCash;
@@ -46,7 +48,6 @@ const App = () => {
             singleCash = 0;
           }
         }
-        // Стратегия 2 (выплаты ежемесячно)
         const monthlyCoupon = curMonthlyPrincipal * (netRateMonthly / 12);
         const availableMonthly = monthlyCoupon + monthlyCash;
         if (useLotSize) {
@@ -69,7 +70,6 @@ const App = () => {
     return data;
   }, [principal, yieldSingle, yieldMonthly, bondPrice, years, taxRate, reinvest, useLotSize]);
 
-  // Универсальный блок ввода (бегунок + цифры)
   const InputBlock = useCallback(({ label, sublabel, icon: Icon, value, onChange, min, max, step, suffix, activeColor }) => (
     <div className="bg-slate-50/80 p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-3">
       <div className="flex justify-between items-start">
@@ -83,9 +83,10 @@ const App = () => {
         <div className="bg-white px-3 py-1.5 rounded-2xl border border-slate-200 shadow-inner flex items-center">
           <input 
             type="number" 
+            step={step}
             value={value} 
             onChange={(e) => onChange(Number(e.target.value))}
-            className={`w-20 text-right font-black text-sm focus:outline-none bg-transparent ${activeColor.replace('bg-', 'text-')}`}
+            className={`w-24 text-right font-black text-sm focus:outline-none bg-transparent ${activeColor.replace('bg-', 'text-')}`}
           />
           <span className="ml-1 text-[11px] font-bold text-slate-400">{suffix}</span>
         </div>
@@ -111,16 +112,14 @@ const App = () => {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Колонка настроек */}
           <div className="bg-white p-6 rounded-[3rem] shadow-2xl shadow-slate-200/60 border border-white space-y-4 h-fit">
             <div className="flex justify-between items-center mb-4 px-2">
               <h2 className="text-xl font-black text-slate-700">Настройки</h2>
               <Calculator className="text-slate-300" size={24} />
             </div>
 
-            <InputBlock label="Стартовый капитал" value={principal} onChange={setPrincipal} min={1000} max={10000000} step={10000} suffix="₽" icon={Wallet} activeColor="text-blue-600" />
+            <InputBlock label="Стартовый капитал" value={principal} onChange={setPrincipal} min={100000} max={10000000} step={100000} suffix="₽" icon={Wallet} activeColor="text-blue-600" />
             
-            {/* ТО САМОЕ ОКОШКО С ЦЕНОЙ */}
             <InputBlock label="Цена одной облигации" value={bondPrice} onChange={setBondPrice} min={10} max={10000} step={10} suffix="₽" icon={Coins} activeColor="text-orange-500" />
 
             <div className="p-5 bg-indigo-50/50 rounded-[2rem] border border-indigo-100/50 space-y-4">
@@ -128,8 +127,8 @@ const App = () => {
                   <div className="text-[10px] font-black uppercase tracking-widest text-indigo-500">Доходность стратегий</div>
                   <div className="text-[11px] text-slate-400 italic">Укажите доходность (% годовых) для каждого варианта</div>
                </div>
-              <InputBlock label="Один выпуск (2 вып/г)" value={yieldSingle} onChange={setYieldSingle} min={0} max={40} step={0.1} suffix="%" icon={Percent} activeColor="text-indigo-600" />
-              <InputBlock label="Лестница (12 вып/г)" value={yieldMonthly} onChange={setYieldMonthly} min={0} max={40} step={0.1} suffix="%" icon={TrendingUp} activeColor="text-emerald-600" />
+              <InputBlock label="Один выпуск (2 выплат/год)" value={yieldSingle} onChange={setYieldSingle} min={0} max={40} step={0.1} suffix="%" icon={Percent} activeColor="text-indigo-600" />
+              <InputBlock label="Лестница (12 выплат/год)" value={yieldMonthly} onChange={setYieldMonthly} min={0} max={40} step={0.1} suffix="%" icon={TrendingUp} activeColor="text-emerald-600" />
             </div>
 
             <div className="space-y-3 pt-2">
@@ -149,10 +148,9 @@ const App = () => {
               </label>
             </div>
 
-            <InputBlock label="Срок (лет)" value={years} onChange={setYears} min={1} max={50} step={1} suffix="ЛЕТ" icon={Calendar} activeColor="text-slate-700" />
+            <InputBlock label="Срок инвестирования" value={years} onChange={setYears} min={1} max={50} step={1} suffix="ЛЕТ" icon={Calendar} activeColor="text-slate-700" />
           </div>
 
-          {/* Колонка результатов */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white p-6 md:p-10 rounded-[3rem] shadow-2xl shadow-slate-200/60 border border-white">
               <div className="h-[400px] w-full">
@@ -163,7 +161,7 @@ const App = () => {
                     <YAxis stroke="#cbd5e1" fontSize={12} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v/1000000).toFixed(1)}M`} />
                     <Tooltip 
                       contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', padding: '16px', fontWeight: 'bold' }}
-                      formatter={(val) => new Intl.NumberFormat('ru-RU').format(val) + ' ₽'}
+                      formatter={(val) => formatNum(val) + ' ₽'}
                     />
                     <Line type="monotone" name="Выпуск 1" dataKey="single" stroke="#6366f1" strokeWidth={5} dot={false} />
                     <Line type="monotone" name="Лестница" dataKey="monthly" stroke="#10b981" strokeWidth={5} dot={false} />
@@ -175,11 +173,11 @@ const App = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-indigo-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-indigo-200">
                 <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-2">Итог: Стратегия 1</div>
-                <div className="text-3xl font-black">{new Intl.NumberFormat('ru-RU').format(results[results.length-1].single)} ₽</div>
+                <div className="text-3xl font-black">{formatNum(results[results.length-1].single)} ₽</div>
               </div>
               <div className="bg-emerald-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-emerald-200">
                 <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-2">Итог: Лестница</div>
-                <div className="text-3xl font-black">{new Intl.NumberFormat('ru-RU').format(results[results.length-1].monthly)} ₽</div>
+                <div className="text-3xl font-black">{formatNum(results[results.length-1].monthly)} ₽</div>
               </div>
             </div>
           </div>
